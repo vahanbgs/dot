@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand, command};
-use directories_next::UserDirs;
+use directories_next::BaseDirs;
 use std::{fs, io, path::Path};
 use walkdir::WalkDir;
 
@@ -45,15 +45,12 @@ pub fn copy(src: &Path, dst: &Path) -> io::Result<()> {
 fn main() -> io::Result<()> {
     let _ = Cli::parse();
 
-    let home_directory = UserDirs::new()
-        .expect("Could not retrieve home directory")
-        .home_dir()
-        .to_path_buf();
+    let base_dirs = BaseDirs::new().expect("Could not retrieve home directory");
 
-    let src = home_directory.join(".local/share/dot/home/");
-    let dst = home_directory;
+    let src = base_dirs.data_dir().join("dot/home/");
+    let dst = base_dirs.home_dir();
 
-    copy(&src, &dst)?;
+    copy(&src, dst)?;
 
     Ok(())
 }
