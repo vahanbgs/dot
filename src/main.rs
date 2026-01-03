@@ -124,10 +124,15 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
         )?;
 
         println!(
-            "Wrote local configuration variables in {:?} file.",
+            "Wrote local configuration variables to {:?} file.",
             local_variable_map_path
         );
     }
+
+    println!(
+        "Done copying configuration files from {:?} to {:?}",
+        src_dir_path, dst_dir_path
+    );
 
     Ok(())
 }
