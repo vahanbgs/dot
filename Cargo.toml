@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.100"
 clap = { version = "4.5.53", features = ["derive"] }
 directories-next = "2"
-tielpmet = { version = "0.1.0", git = "https://github.com/vahanbgs/tielpmet.git", tag = "0.1.0" }
+tielpmet = { version = "0.2.0", git = "https://github.com/vahanbgs/tielpmet.git", tag = "0.2.0" }
+toml = "0.9.10"
 walkdir = "2.5.0"
