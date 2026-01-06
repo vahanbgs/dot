@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
 use directories_next::BaseDirs;
 use std::{
+    env,
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -19,6 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    Add { path: PathBuf },
     Deploy,
 }
 
@@ -27,6 +29,35 @@ pub fn load_local_table(path: &Path) -> anyhow::Result<Table> {
 }
 
 const TEMPLATE_FILE_EXTENSION: &'static str = ".tielpmet";
+
+pub fn add(base_dirs: &BaseDirs, file_path: &Path) -> anyhow::Result<()> {
+    if !file_path.is_file() {
+        Err(anyhow!("file does not exist or is not a suitable file"))?
+    }
+
+    let src_file_path = if file_path.is_absolute() {
+        file_path
+    } else {
+        &env::current_dir()?.join(file_path)
+    };
+
+    let relative_file_path = src_file_path
+        .strip_prefix(base_dirs.home_dir())
+        .map_err(|_| anyhow!("only files in the home directory can be added"))?;
+
+    let dst_file_path = base_dirs
+        .data_dir()
+        .join("dot/home")
+        .join(relative_file_path);
+
+    if let Some(parent) = dst_file_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    fs::copy(src_file_path, dst_file_path)?;
+
+    Ok(())
+}
 
 pub fn deploy_template(
     src_file_path: &Path,
@@ -138,11 +169,14 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let _ = Cli::parse();
+    let cli = Cli::parse();
 
     let base_dirs = BaseDirs::new().expect("Could not retrieve home directory");
 
-    deploy(&base_dirs)?;
+    match cli.command {
+        Commands::Add { path } => add(&base_dirs, &path)?,
+        Commands::Deploy => deploy(&base_dirs)?,
+    }
 
     Ok(())
 }
