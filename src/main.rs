@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand, command};
 use directories_next::BaseDirs;
 use std::{
     env,
+    ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -20,7 +21,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Add { path: PathBuf },
+    Add {
+        path: PathBuf,
+
+        #[arg(long)]
+        template: bool,
+    },
     Deploy,
 }
 
@@ -28,9 +34,9 @@ pub fn load_local_table(path: &Path) -> anyhow::Result<Table> {
     Ok(fs::read_to_string(path)?.parse::<Table>()?)
 }
 
-const TEMPLATE_FILE_EXTENSION: &'static str = ".tielpmet";
+const TEMPLATE_FILE_EXTENSION: &'static str = "tielpmet";
 
-pub fn add(base_dirs: &BaseDirs, file_path: &Path) -> anyhow::Result<()> {
+pub fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result<()> {
     if !file_path.is_file() {
         Err(anyhow!("file does not exist or is not a suitable file"))?
     }
@@ -45,10 +51,11 @@ pub fn add(base_dirs: &BaseDirs, file_path: &Path) -> anyhow::Result<()> {
         .strip_prefix(base_dirs.home_dir())
         .map_err(|_| anyhow!("only files in the home directory can be added"))?;
 
-    let dst_file_path = base_dirs
-        .data_dir()
-        .join("dot/home")
-        .join(relative_file_path);
+    let dst_file_path = base_dirs.data_dir().join("dot/home").join(if template {
+        relative_file_path.with_added_extension(TEMPLATE_FILE_EXTENSION)
+    } else {
+        relative_file_path.to_path_buf()
+    });
 
     if let Some(parent) = dst_file_path.parent() {
         fs::create_dir_all(parent)?;
@@ -64,13 +71,7 @@ pub fn deploy_template(
     dst_file_path: &Path,
     local_variable_map: &mut Table,
 ) -> anyhow::Result<()> {
-    let dst_file_path = PathBuf::from(
-        dst_file_path
-            .to_str()
-            .ok_or(anyhow!("could not convert &Path to &str"))?
-            .strip_suffix(TEMPLATE_FILE_EXTENSION)
-            .unwrap(),
-    );
+    let dst_file_path = dst_file_path.with_extension("");
 
     let template_string = fs::read_to_string(src_file_path)?;
 
@@ -133,9 +134,7 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
                 fs::create_dir_all(parent)?;
             }
 
-            let filename: &str = entry.file_name().try_into()?;
-
-            if filename.ends_with(TEMPLATE_FILE_EXTENSION) {
+            if src_file_path.extension() == Some(OsStr::new(TEMPLATE_FILE_EXTENSION)) {
                 deploy_template(src_file_path, &dst_file_path, &mut local_variable_map)?;
             } else {
                 fs::copy(src_file_path, dst_file_path)?;
@@ -174,7 +173,7 @@ fn main() -> anyhow::Result<()> {
     let base_dirs = BaseDirs::new().expect("Could not retrieve home directory");
 
     match cli.command {
-        Commands::Add { path } => add(&base_dirs, &path)?,
+        Commands::Add { path, template } => add(&base_dirs, &path, template)?,
         Commands::Deploy => deploy(&base_dirs)?,
     }
 
