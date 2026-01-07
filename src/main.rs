@@ -1,5 +1,8 @@
+mod config;
+
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
+use config::Config;
 use directories_next::BaseDirs;
 use opensesame::Editor;
 use std::{
@@ -31,18 +34,37 @@ enum Commands {
     Edit {
         path: PathBuf,
 
-        #[arg(long)]
+        #[arg(long, conflicts_with = "no_deploy")]
         deploy: bool,
+
+        #[arg(long, conflicts_with = "deploy")]
+        no_deploy: bool,
     },
 }
 
-pub fn load_local_table(path: &Path) -> anyhow::Result<Table> {
-    Ok(fs::read_to_string(path)?.parse::<Table>()?)
+/// Creates the parent directory of a given path if there is one.
+fn create_parent_directory<P: AsRef<Path>>(path: P) -> io::Result<()> {
+    if let Some(parent) = path.as_ref().parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    Ok(())
+}
+
+fn load_config(base_dirs: &BaseDirs) -> anyhow::Result<Config> {
+    let path = base_dirs.config_dir().join("dot/config.toml");
+
+    let config_content = match fs::read_to_string(path) {
+        Ok(s) => s,
+        _ => return Ok(Config::default()),
+    };
+
+    Ok(toml::from_str(&config_content)?)
 }
 
 const TEMPLATE_FILE_EXTENSION: &'static str = "tielpmet";
 
-pub fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result<()> {
+fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result<()> {
     if !file_path.is_file() {
         Err(anyhow!("file does not exist or is not a suitable file"))?
     }
@@ -59,16 +81,14 @@ pub fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Re
         relative_file_path.to_path_buf()
     });
 
-    if let Some(parent) = dst_file_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    create_parent_directory(&dst_file_path)?;
 
     fs::copy(src_file_path, dst_file_path)?;
 
     Ok(())
 }
 
-pub fn deploy_template(
+fn deploy_template(
     src_file_path: &Path,
     dst_file_path: &Path,
     local_variable_map: &mut Table,
@@ -106,7 +126,7 @@ pub fn deploy_template(
     Ok(())
 }
 
-pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
+fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     let src_dir_path = &base_dirs.data_dir().join("dot/home/");
     let dst_dir_path = base_dirs.home_dir();
 
@@ -132,9 +152,7 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
         if file_type.is_dir() {
             fs::create_dir_all(dst_file_path)?;
         } else if file_type.is_file() {
-            if let Some(parent) = dst_file_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
+            create_parent_directory(&dst_file_path)?;
 
             if src_file_path.extension() == Some(OsStr::new(TEMPLATE_FILE_EXTENSION)) {
                 deploy_template(src_file_path, &dst_file_path, &mut local_variable_map)?;
@@ -145,10 +163,7 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     }
 
     if !local_variable_map.is_empty() {
-        if let Some(parent) = local_variable_map_path.parent() {
-            // This creates all missing parent directories
-            fs::create_dir_all(parent)?;
-        }
+        create_parent_directory(&local_variable_map_path)?;
 
         fs::write(
             local_variable_map_path,
@@ -169,7 +184,7 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn edit(base_dirs: &BaseDirs, path: &Path, should_deploy: bool) -> anyhow::Result<()> {
+fn edit(base_dirs: &BaseDirs, path: &Path, should_deploy: bool) -> anyhow::Result<()> {
     let relative_path = path::absolute(path)?
         .strip_prefix(base_dirs.home_dir())
         .map_err(|_| anyhow!("only files in the home directory can be edited"))?
@@ -189,10 +204,20 @@ fn main() -> anyhow::Result<()> {
 
     let base_dirs = BaseDirs::new().expect("Could not retrieve home directory");
 
+    let config = load_config(&base_dirs)?;
+
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
         Commands::Deploy => deploy(&base_dirs)?,
-        Commands::Edit { path, deploy } => edit(&base_dirs, &path, deploy)?,
+        Commands::Edit {
+            path,
+            deploy,
+            no_deploy,
+        } => edit(
+            &base_dirs,
+            &path,
+            !no_deploy && (deploy || config.auto_deploy),
+        )?,
     }
 
     Ok(())
