@@ -1,12 +1,12 @@
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
 use directories_next::BaseDirs;
+use opensesame::Editor;
 use std::{
-    env,
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::{self, Path, PathBuf},
 };
 use tielpmet::template::Template;
 use toml::{Table, Value};
@@ -28,6 +28,9 @@ enum Commands {
         template: bool,
     },
     Deploy,
+    Edit {
+        path: PathBuf,
+    },
 }
 
 pub fn load_local_table(path: &Path) -> anyhow::Result<Table> {
@@ -41,11 +44,7 @@ pub fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Re
         Err(anyhow!("file does not exist or is not a suitable file"))?
     }
 
-    let src_file_path = if file_path.is_absolute() {
-        file_path
-    } else {
-        &env::current_dir()?.join(file_path)
-    };
+    let src_file_path = path::absolute(file_path)?;
 
     let relative_file_path = src_file_path
         .strip_prefix(base_dirs.home_dir())
@@ -167,6 +166,17 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn edit(base_dirs: &BaseDirs, path: &Path) -> anyhow::Result<()> {
+    let relative_path = path::absolute(path)?
+        .strip_prefix(base_dirs.home_dir())
+        .map_err(|_| anyhow!("only files in the home directory can be edited"))?
+        .to_path_buf();
+
+    Editor::open(base_dirs.data_dir().join("dot/home").join(relative_path))?;
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -175,6 +185,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
         Commands::Deploy => deploy(&base_dirs)?,
+        Commands::Edit { path } => edit(&base_dirs, &path)?,
     }
 
     Ok(())
