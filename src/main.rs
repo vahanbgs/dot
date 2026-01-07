@@ -30,6 +30,9 @@ enum Commands {
     Deploy,
     Edit {
         path: PathBuf,
+
+        #[arg(long)]
+        deploy: bool,
     },
 }
 
@@ -166,13 +169,17 @@ pub fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn edit(base_dirs: &BaseDirs, path: &Path) -> anyhow::Result<()> {
+pub fn edit(base_dirs: &BaseDirs, path: &Path, should_deploy: bool) -> anyhow::Result<()> {
     let relative_path = path::absolute(path)?
         .strip_prefix(base_dirs.home_dir())
         .map_err(|_| anyhow!("only files in the home directory can be edited"))?
         .to_path_buf();
 
     Editor::open(base_dirs.data_dir().join("dot/home").join(relative_path))?;
+
+    if should_deploy {
+        deploy(base_dirs)?;
+    }
 
     Ok(())
 }
@@ -185,7 +192,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
         Commands::Deploy => deploy(&base_dirs)?,
-        Commands::Edit { path } => edit(&base_dirs, &path)?,
+        Commands::Edit { path, deploy } => edit(&base_dirs, &path, deploy)?,
     }
 
     Ok(())
