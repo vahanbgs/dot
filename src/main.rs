@@ -20,6 +20,9 @@ use walkdir::WalkDir;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+
+    #[arg(long)]
+    verbose: bool,
 }
 
 #[derive(Subcommand)]
@@ -126,7 +129,7 @@ fn deploy_template(
     Ok(())
 }
 
-fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
+fn deploy(base_dirs: &BaseDirs, verbose: bool) -> anyhow::Result<()> {
     let src_dir_path = &base_dirs.data_dir().join("dot/home/");
     let dst_dir_path = base_dirs.home_dir();
 
@@ -178,15 +181,22 @@ fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
         );
     }
 
-    println!(
-        "Done copying configuration files from {:?} to {:?}",
-        src_dir_path, dst_dir_path
-    );
+    if verbose {
+        println!(
+            "Done copying configuration files from {:?} to {:?}",
+            src_dir_path, dst_dir_path
+        );
+    }
 
     Ok(())
 }
 
-fn edit(base_dirs: &BaseDirs, path: &Path, should_deploy: bool) -> anyhow::Result<()> {
+fn edit(
+    base_dirs: &BaseDirs,
+    path: &Path,
+    should_deploy: bool,
+    verbose: bool,
+) -> anyhow::Result<()> {
     let relative_path = path::absolute(path)?
         .strip_prefix(base_dirs.home_dir())
         .map_err(|_| anyhow!("only files in the home directory can be edited"))?
@@ -195,7 +205,7 @@ fn edit(base_dirs: &BaseDirs, path: &Path, should_deploy: bool) -> anyhow::Resul
     Editor::open(base_dirs.data_dir().join("dot/home").join(relative_path))?;
 
     if should_deploy {
-        deploy(base_dirs)?;
+        deploy(base_dirs, verbose)?;
     }
 
     Ok(())
@@ -210,7 +220,7 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
-        Commands::Deploy => deploy(&base_dirs)?,
+        Commands::Deploy => deploy(&base_dirs, cli.verbose)?,
         Commands::Edit {
             path,
             deploy,
@@ -219,6 +229,7 @@ fn main() -> anyhow::Result<()> {
             &base_dirs,
             &path,
             !no_deploy && (deploy || config.auto_deploy),
+            cli.verbose,
         )?,
     }
 
