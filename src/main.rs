@@ -1,7 +1,8 @@
 mod config;
 
 use anyhow::anyhow;
-use clap::{Parser, Subcommand, command};
+use clap::{CommandFactory, Parser, Subcommand, command};
+use clap_complete::{self, Shell};
 use config::Config;
 use directories_next::BaseDirs;
 use opensesame::Editor;
@@ -32,6 +33,9 @@ enum Commands {
 
         #[arg(long)]
         template: bool,
+    },
+    Completions {
+        shell: Shell,
     },
     Deploy,
     Edit {
@@ -220,6 +224,9 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
+        Commands::Completions { shell } => {
+            clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
+        }
         Commands::Deploy => deploy(&base_dirs, cli.verbose)?,
         Commands::Edit {
             path,
