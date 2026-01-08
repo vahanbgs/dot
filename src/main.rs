@@ -132,10 +132,12 @@ fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
 
     let local_variable_map_path = &base_dirs.config_dir().join("dot/local.toml");
 
-    let mut local_variable_map = fs::read_to_string(local_variable_map_path)
+    let previous_local_variable_map = fs::read_to_string(local_variable_map_path)
         .map_err(anyhow::Error::from)
         .and_then(|s| s.parse::<Table>().map_err(anyhow::Error::from))
         .unwrap_or_else(|_| Table::new());
+
+    let mut local_variable_map = previous_local_variable_map.clone();
 
     for entry in WalkDir::new(src_dir_path).follow_links(false) {
         let entry = entry?;
@@ -162,7 +164,7 @@ fn deploy(base_dirs: &BaseDirs) -> anyhow::Result<()> {
         }
     }
 
-    if !local_variable_map.is_empty() {
+    if local_variable_map != previous_local_variable_map {
         create_parent_directory(&local_variable_map_path)?;
 
         fs::write(
