@@ -59,6 +59,13 @@ enum Commands {
         #[arg(long, conflicts_with = "deploy")]
         no_deploy: bool,
     },
+    Pull {
+        #[arg(long, conflicts_with = "no_deploy")]
+        deploy: bool,
+
+        #[arg(long, conflicts_with = "deploy")]
+        no_deploy: bool,
+    },
 }
 
 /// Creates the parent directory of a given path if there is one.
@@ -269,6 +276,22 @@ fn init(
     Ok(())
 }
 
+fn pull(base_dirs: &BaseDirs, should_deploy: bool, verbose: bool) -> anyhow::Result<()> {
+    let repository_path = base_dirs.data_dir().join("dot");
+
+    Command::new("git")
+        .arg("pull")
+        .arg("--rebase")
+        .current_dir(repository_path)
+        .status()?;
+
+    if should_deploy {
+        deploy(base_dirs, verbose)?;
+    }
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -299,6 +322,11 @@ fn main() -> anyhow::Result<()> {
         } => init(
             &base_dirs,
             &repository,
+            !no_deploy && (deploy || config.auto_deploy),
+            cli.verbose,
+        )?,
+        Commands::Pull { deploy, no_deploy } => pull(
+            &base_dirs,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,
