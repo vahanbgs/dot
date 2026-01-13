@@ -8,6 +8,7 @@ anyhow = "1.0.100"
 clap = { version = "4.5.53", features = ["derive"] }
 clap_complete = "4.5.65"
 directories-next = "2"
+git-url-parse = "0.6.0"
 opensesame = "0.1.1"
 serde = { version = "1.0.228", features = ["derive"] }
 tielpmet = { version = "0.2.0", git = "https://github.com/vahanbgs/tielpmet.git", tag = "0.2.0" }

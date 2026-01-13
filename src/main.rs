@@ -5,12 +5,14 @@ use clap::{CommandFactory, Parser, Subcommand, command};
 use clap_complete::{self, Shell};
 use config::Config;
 use directories_next::BaseDirs;
+use git_url_parse::GitUrl;
 use opensesame::Editor;
 use std::{
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
     path::{self, Path, PathBuf},
+    process::Command,
 };
 use tielpmet::template::Template;
 use toml::{Table, Value};
@@ -40,6 +42,16 @@ enum Commands {
     Deploy,
     Edit {
         path: PathBuf,
+
+        #[arg(long, conflicts_with = "no_deploy")]
+        deploy: bool,
+
+        #[arg(long, conflicts_with = "deploy")]
+        no_deploy: bool,
+    },
+    Init {
+        #[arg(value_parser = GitUrl::parse)]
+        repository: GitUrl,
 
         #[arg(long, conflicts_with = "no_deploy")]
         deploy: bool,
@@ -222,6 +234,41 @@ fn edit(
     Ok(())
 }
 
+fn init(
+    base_dirs: &BaseDirs,
+    repository: &GitUrl,
+    should_deploy: bool,
+    verbose: bool,
+) -> anyhow::Result<()> {
+    let src_path = repository;
+    let dst_path = base_dirs.data_dir().join("dot");
+
+    create_parent_directory(&dst_path)?;
+
+    let src = src_path.to_string();
+    let dst = dst_path.to_str().expect("the unexpected");
+
+    if dst_path.exists() {
+        return Err(anyhow!("{} already exists", dst));
+    }
+
+    if verbose {
+        println!("git clone {} {}", src, dst);
+    }
+
+    Command::new("git")
+        .arg("clone")
+        .arg(src)
+        .arg(dst)
+        .status()?;
+
+    if should_deploy {
+        deploy(base_dirs, verbose)?;
+    }
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -242,6 +289,16 @@ fn main() -> anyhow::Result<()> {
         } => edit(
             &base_dirs,
             &path,
+            !no_deploy && (deploy || config.auto_deploy),
+            cli.verbose,
+        )?,
+        Commands::Init {
+            repository,
+            deploy,
+            no_deploy,
+        } => init(
+            &base_dirs,
+            &repository,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,
