@@ -206,7 +206,14 @@ fn edit(
         .map_err(|_| anyhow!("only files in the home directory can be edited"))?
         .to_path_buf();
 
-    Editor::open(base_dirs.data_dir().join("dot/home").join(relative_path))?;
+    let file_path = base_dirs.data_dir().join("dot/home").join(relative_path);
+    let template_file_path = file_path.with_added_extension(TEMPLATE_FILE_EXTENSION);
+
+    Editor::open(if template_file_path.exists() {
+        template_file_path
+    } else {
+        file_path
+    })?;
 
     if should_deploy {
         deploy(base_dirs, verbose)?;
