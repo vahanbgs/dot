@@ -26,7 +26,7 @@
         # For `nix build` & `nix run`:
         defaultPackage = naersk'.buildPackage {
           pname = "dot";
-          version = "0.4.0";
+          version = "0.5.0";
           src = ./.;
 
           nativeBuildInputs = [ pkgs.installShellFiles ];

@@ -8,6 +8,7 @@ use directories_next::BaseDirs;
 use git_url_parse::GitUrl;
 use opensesame::Editor;
 use std::{
+    env,
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
@@ -36,6 +37,7 @@ enum Commands {
         #[arg(long)]
         template: bool,
     },
+    Cd,
     Completions {
         shell: Shell,
     },
@@ -110,6 +112,16 @@ fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result
     create_parent_directory(&dst_file_path)?;
 
     fs::copy(src_file_path, dst_file_path)?;
+
+    Ok(())
+}
+
+fn cd(base_dirs: &BaseDirs) -> anyhow::Result<()> {
+    let repository_path = base_dirs.data_dir().join("dot");
+
+    Command::new(env::var("SHELL")?)
+        .current_dir(repository_path)
+        .status()?;
 
     Ok(())
 }
@@ -301,6 +313,7 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Add { path, template } => add(&base_dirs, &path, template)?,
+        Commands::Cd => cd(&base_dirs)?,
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
         }
