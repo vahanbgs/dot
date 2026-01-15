@@ -8,6 +8,7 @@ use directories_next::BaseDirs;
 use git_url_parse::GitUrl;
 use opensesame::Editor;
 use std::{
+    collections::HashMap,
     env,
     ffi::OsStr,
     fs::{self, File},
@@ -16,7 +17,7 @@ use std::{
     process::Command,
 };
 use tielpmet::template::Template;
-use toml::{Table, Value};
+use toml::Table;
 use walkdir::WalkDir;
 
 #[derive(Parser)]
@@ -129,7 +130,7 @@ fn cd(base_dirs: &BaseDirs) -> anyhow::Result<()> {
 fn deploy_template(
     src_file_path: &Path,
     dst_file_path: &Path,
-    local_variable_map: &mut Table,
+    local_variable_map: &mut HashMap<String, String>,
 ) -> anyhow::Result<()> {
     let dst_file_path = dst_file_path.with_extension("");
 
@@ -153,7 +154,7 @@ fn deploy_template(
 
             let input = input.trim();
 
-            local_variable_map.insert(variable_name.to_string(), Value::String(input.to_string()));
+            local_variable_map.insert(variable_name.to_string(), input.to_string());
         }
     }
 
@@ -173,7 +174,10 @@ fn deploy(base_dirs: &BaseDirs, verbose: bool) -> anyhow::Result<()> {
     let previous_local_variable_map = fs::read_to_string(local_variable_map_path)
         .map_err(anyhow::Error::from)
         .and_then(|s| s.parse::<Table>().map_err(anyhow::Error::from))
-        .unwrap_or_else(|_| Table::new());
+        .unwrap_or_else(|_| Table::new())
+        .into_iter()
+        .map(|(key, value)| (key, value.as_str().unwrap().to_owned()))
+        .collect::<HashMap<_, _>>();
 
     let mut local_variable_map = previous_local_variable_map.clone();
 

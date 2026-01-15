@@ -1,8 +1,11 @@
 {
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/25.11";
+
     flake-utils.url = "github:numtide/flake-utils";
+
     naersk.url = "github:nix-community/naersk";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    naersk.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -26,7 +29,7 @@
         # For `nix build` & `nix run`:
         defaultPackage = naersk'.buildPackage {
           pname = "dot";
-          version = "0.5.0";
+          version = "0.5.1";
           src = ./.;
 
           nativeBuildInputs = [ pkgs.installShellFiles ];
