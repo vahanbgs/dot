@@ -1,38 +1,29 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/25.11";
-
     flake-utils.url = "github:numtide/flake-utils";
-
-    naersk.url = "github:nix-community/naersk";
-    naersk.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/25.11";
   };
 
   outputs =
-    {
-      self,
-      flake-utils,
-      naersk,
-      nixpkgs,
-    }:
-
-    flake-utils.lib.eachDefaultSystem (
+    inputs:
+    inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = (import nixpkgs) {
+        pkgs = import inputs.nixpkgs {
           inherit system;
         };
-
-        naersk' = pkgs.callPackage naersk { };
       in
       {
-        # For `nix build` & `nix run`:
-        defaultPackage = naersk'.buildPackage {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "dot";
-          version = "0.5.1";
+          version = "0.5.2";
           src = ./.;
 
-          nativeBuildInputs = [ pkgs.installShellFiles ];
+          cargoHash = "sha256-Yo2HL3qJ+bfAk1TpCF+Jgh8ch07OQ5CtHUNiXDW+lNQ=";
+
+          nativeBuildInputs = with pkgs; [
+            installShellFiles
+          ];
 
           postInstall = ''
             # Generate and install completions
@@ -43,11 +34,15 @@
           '';
         };
 
-        # For `nix develop`
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
-            rustc
             cargo
+            clippy
+            nixd
+            nixfmt
+            rustc
+            rustfmt
+            rust-analyzer
           ];
         };
       }
