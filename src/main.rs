@@ -32,12 +32,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Add {
-        path: PathBuf,
-
-        #[arg(long)]
-        template: bool,
-    },
     Cd,
     Completions {
         shell: Shell,
@@ -70,6 +64,12 @@ enum Commands {
         no_deploy: bool,
     },
     Status,
+    Track {
+        path: PathBuf,
+
+        #[arg(long)]
+        template: bool,
+    },
 }
 
 /// Creates the parent directory of a given path if there is one.
@@ -93,30 +93,6 @@ fn load_config(base_dirs: &BaseDirs) -> anyhow::Result<Config> {
 }
 
 const TEMPLATE_FILE_EXTENSION: &'static str = "tielpmet";
-
-fn add(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result<()> {
-    if !file_path.is_file() {
-        Err(anyhow!("file does not exist or is not a suitable file"))?
-    }
-
-    let src_file_path = path::absolute(file_path)?;
-
-    let relative_file_path = src_file_path
-        .strip_prefix(base_dirs.home_dir())
-        .map_err(|_| anyhow!("only files in the home directory can be added"))?;
-
-    let dst_file_path = base_dirs.data_dir().join("dot/home").join(if template {
-        relative_file_path.with_added_extension(TEMPLATE_FILE_EXTENSION)
-    } else {
-        relative_file_path.to_path_buf()
-    });
-
-    create_parent_directory(&dst_file_path)?;
-
-    fs::copy(src_file_path, dst_file_path)?;
-
-    Ok(())
-}
 
 fn cd(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
@@ -320,6 +296,30 @@ fn status(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn track(base_dirs: &BaseDirs, file_path: &Path, template: bool) -> anyhow::Result<()> {
+    if !file_path.is_file() {
+        Err(anyhow!("file does not exist or is not a suitable file"))?
+    }
+
+    let src_file_path = path::absolute(file_path)?;
+
+    let relative_file_path = src_file_path
+        .strip_prefix(base_dirs.home_dir())
+        .map_err(|_| anyhow!("only files in the home directory can be tracked"))?;
+
+    let dst_file_path = base_dirs.data_dir().join("dot/home").join(if template {
+        relative_file_path.with_added_extension(TEMPLATE_FILE_EXTENSION)
+    } else {
+        relative_file_path.to_path_buf()
+    });
+
+    create_parent_directory(&dst_file_path)?;
+
+    fs::copy(src_file_path, dst_file_path)?;
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -328,7 +328,6 @@ fn main() -> anyhow::Result<()> {
     let config = load_config(&base_dirs)?;
 
     match cli.command {
-        Commands::Add { path, template } => add(&base_dirs, &path, template)?,
         Commands::Cd => cd(&base_dirs)?,
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
@@ -360,6 +359,7 @@ fn main() -> anyhow::Result<()> {
             cli.verbose,
         )?,
         Commands::Status => status(&base_dirs)?,
+        Commands::Track { path, template } => track(&base_dirs, &path, template)?,
     }
 
     Ok(())
