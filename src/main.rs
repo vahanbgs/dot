@@ -37,6 +37,10 @@ enum Commands {
         options: Vec<String>,
     },
     Cd,
+    Commit {
+        #[arg(allow_hyphen_values = true)]
+        options: Vec<String>,
+    },
     Completions {
         shell: Shell,
     },
@@ -66,6 +70,10 @@ enum Commands {
 
         #[arg(long, conflicts_with = "deploy")]
         no_deploy: bool,
+    },
+    Push {
+        #[arg(allow_hyphen_values = true)]
+        options: Vec<String>,
     },
     Status,
     Track {
@@ -117,6 +125,21 @@ fn cd(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
 
     Command::new(env::var("SHELL")?)
+        .current_dir(repository_path)
+        .status()?;
+
+    Ok(())
+}
+
+fn commit(
+    base_dirs: &BaseDirs,
+    options: impl IntoIterator<Item = impl AsRef<OsStr>>,
+) -> anyhow::Result<()> {
+    let repository_path = base_dirs.data_dir().join("dot");
+
+    Command::new("git")
+        .arg("commit")
+        .args(options)
         .current_dir(repository_path)
         .status()?;
 
@@ -304,6 +327,21 @@ fn pull(base_dirs: &BaseDirs, should_deploy: bool, verbose: bool) -> anyhow::Res
     Ok(())
 }
 
+fn push(
+    base_dirs: &BaseDirs,
+    options: impl IntoIterator<Item = impl AsRef<OsStr>>,
+) -> anyhow::Result<()> {
+    let repository_path = base_dirs.data_dir().join("dot");
+
+    Command::new("git")
+        .arg("push")
+        .args(options)
+        .current_dir(repository_path)
+        .status()?;
+
+    Ok(())
+}
+
 fn status(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
 
@@ -349,6 +387,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Add { options } => add(&base_dirs, options)?,
         Commands::Cd => cd(&base_dirs)?,
+        Commands::Commit { options } => commit(&base_dirs, options)?,
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
         }
@@ -378,6 +417,7 @@ fn main() -> anyhow::Result<()> {
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,
+        Commands::Push { options } => push(&base_dirs, options)?,
         Commands::Status => status(&base_dirs)?,
         Commands::Track { path, template } => track(&base_dirs, &path, template)?,
     }
