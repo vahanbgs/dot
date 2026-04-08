@@ -32,6 +32,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    Add {
+        #[arg(allow_hyphen_values = true)]
+        options: Vec<String>,
+    },
     Cd,
     Completions {
         shell: Shell,
@@ -93,6 +97,21 @@ fn load_config(base_dirs: &BaseDirs) -> anyhow::Result<Config> {
 }
 
 const TEMPLATE_FILE_EXTENSION: &'static str = "tielpmet";
+
+fn add(
+    base_dirs: &BaseDirs,
+    options: impl IntoIterator<Item = impl AsRef<OsStr>>,
+) -> anyhow::Result<()> {
+    let repository_path = base_dirs.data_dir().join("dot");
+
+    Command::new("git")
+        .arg("add")
+        .args(options)
+        .current_dir(repository_path)
+        .status()?;
+
+    Ok(())
+}
 
 fn cd(base_dirs: &BaseDirs) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
@@ -328,6 +347,7 @@ fn main() -> anyhow::Result<()> {
     let config = load_config(&base_dirs)?;
 
     match cli.command {
+        Commands::Add { options } => add(&base_dirs, options)?,
         Commands::Cd => cd(&base_dirs)?,
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
