@@ -19,5 +19,7 @@ fn main() -> Result<(), Error> {
 
     generate_to(Nushell, &mut cmd, "dot", &outdir)?;
 
+    println!("cargo:rerun-if-changed=src/cli.rs");
+
     Ok(())
 }
