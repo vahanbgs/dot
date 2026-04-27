@@ -19,18 +19,18 @@
           version = "0.6.0";
           src = ./.;
 
-          cargoHash = "sha256-E2jVpECk4teQ13A58aABi6Kde78FoT0ykncqkm/Ygyo=";
+          cargoHash = "sha256-DLts4bzaSABe+8C/EFjawxZD/EalxP80nFPtBvtiwGk=";
 
           nativeBuildInputs = with pkgs; [
             installShellFiles
           ];
 
           postInstall = ''
-            # Generate and install completions
             installShellCompletion --cmd dot \
-              --bash <($out/bin/dot completions bash) \
-              --fish <($out/bin/dot completions fish) \
-              --zsh <($out/bin/dot completions zsh) \
+              --bash target/*/build/dot-*/out/dot.bash \
+              --zsh target/*/build/dot-*/out/_dot \
+              --fish target/*/build/dot-*/out/dot.fish \
+              --nushell target/*/build/dot-*/out/dot.nu
           '';
         };
 
