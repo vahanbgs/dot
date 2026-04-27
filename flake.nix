@@ -16,10 +16,10 @@
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "dot";
-          version = "0.6.0";
+          version = "0.6.1";
           src = ./.;
 
-          cargoHash = "sha256-DLts4bzaSABe+8C/EFjawxZD/EalxP80nFPtBvtiwGk=";
+          cargoHash = "sha256-FWLHdHv+EJ5PYP1TTCN3G10RDDTGAnugBSQ2eYemKCs=";
 
           nativeBuildInputs = with pkgs; [
             installShellFiles
