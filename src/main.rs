@@ -1,8 +1,10 @@
+mod cli;
 mod config;
 
 use anyhow::anyhow;
-use clap::{CommandFactory, Parser, Subcommand, command};
-use clap_complete::{self, Shell};
+use clap::{CommandFactory, Parser};
+use clap_complete::{self};
+use cli::Cli;
 use config::Config;
 use directories_next::BaseDirs;
 use git_url_parse::GitUrl;
@@ -13,76 +15,14 @@ use std::{
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
-    path::{self, Path, PathBuf},
+    path::{self, Path},
     process::Command,
 };
 use tielpmet::template::Template;
 use toml::Table;
 use walkdir::WalkDir;
 
-#[derive(Parser)]
-#[command(version)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-
-    #[arg(long)]
-    verbose: bool,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Add {
-        #[arg(allow_hyphen_values = true)]
-        options: Vec<String>,
-    },
-    Cd,
-    Commit {
-        #[arg(allow_hyphen_values = true)]
-        options: Vec<String>,
-    },
-    Completions {
-        shell: Shell,
-    },
-    Deploy,
-    Edit {
-        path: PathBuf,
-
-        #[arg(long, conflicts_with = "no_deploy")]
-        deploy: bool,
-
-        #[arg(long, conflicts_with = "deploy")]
-        no_deploy: bool,
-    },
-    Init {
-        #[arg(value_parser = GitUrl::parse)]
-        repository: GitUrl,
-
-        #[arg(long, conflicts_with = "no_deploy")]
-        deploy: bool,
-
-        #[arg(long, conflicts_with = "deploy")]
-        no_deploy: bool,
-    },
-    Pull {
-        #[arg(long, conflicts_with = "no_deploy")]
-        deploy: bool,
-
-        #[arg(long, conflicts_with = "deploy")]
-        no_deploy: bool,
-    },
-    Push {
-        #[arg(allow_hyphen_values = true)]
-        options: Vec<String>,
-    },
-    Status,
-    Track {
-        path: PathBuf,
-
-        #[arg(long)]
-        template: bool,
-    },
-}
+use crate::cli::Commands;
 
 /// Creates the parent directory of a given path if there is one.
 fn create_parent_directory<P: AsRef<Path>>(path: P) -> io::Result<()> {
@@ -104,7 +44,7 @@ fn load_config(base_dirs: &BaseDirs) -> anyhow::Result<Config> {
     Ok(toml::from_str(&config_content)?)
 }
 
-const TEMPLATE_FILE_EXTENSION: &'static str = "tielpmet";
+const TEMPLATE_FILE_EXTENSION: &str = "tielpmet";
 
 fn add(
     base_dirs: &BaseDirs,
@@ -226,7 +166,7 @@ fn deploy(base_dirs: &BaseDirs, verbose: bool) -> anyhow::Result<()> {
     }
 
     if local_variable_map != previous_local_variable_map {
-        create_parent_directory(&local_variable_map_path)?;
+        create_parent_directory(local_variable_map_path)?;
 
         fs::write(
             local_variable_map_path,
