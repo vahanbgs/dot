@@ -1,7 +1,7 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/26.05";
   };
 
   outputs =
@@ -16,22 +16,38 @@
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "dot";
-          version = "0.6.1";
+          version = (fromTOML (builtins.readFile ./Cargo.toml)).package.version;
           src = ./.;
 
-          cargoHash = "sha256-FWLHdHv+EJ5PYP1TTCN3G10RDDTGAnugBSQ2eYemKCs=";
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            outputHashes = {
+              "tielpmet-0.2.0" = "sha256-955FzzunRsvsdcgN7OpZCtzKBpZgiyiWCXGOiFZprgI=";
+            };
+          };
 
           nativeBuildInputs = with pkgs; [
+            cmake
             installShellFiles
+            perl
           ];
 
+          env.SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+
           postInstall = ''
+            out_dir=$(find target -type d -path '*/build/dot-*/out' | head -1)
             installShellCompletion --cmd dot \
-              --bash target/*/build/dot-*/out/dot.bash \
-              --zsh target/*/build/dot-*/out/_dot \
-              --fish target/*/build/dot-*/out/dot.fish \
-              --nushell target/*/build/dot-*/out/dot.nu
+              --bash "$out_dir/dot.bash" \
+              --zsh  "$out_dir/_dot" \
+              --fish "$out_dir/dot.fish" \
+              --nushell "$out_dir/dot.nu"
           '';
+
+          meta = {
+            description = "Simple dotfile manager";
+            mainProgram = "dot";
+            platforms = pkgs.lib.platforms.unix;
+          };
         };
 
         devShells.default = pkgs.mkShell {
