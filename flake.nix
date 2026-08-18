@@ -22,7 +22,7 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
             outputHashes = {
-              "nuke-eval-0.1.0" = "sha256-sm20wyI7vad1j1clPiq3DKEbluBSCrkT5ONDKksebeA=";
+              "nuke-eval-0.2.0" = "sha256-ORpqy4aq7r14UVrJh8XAg3v8VixHjcBngcFXhhOZhMY=";
               "tielpmet-0.2.0" = "sha256-955FzzunRsvsdcgN7OpZCtzKBpZgiyiWCXGOiFZprgI=";
             };
           };

@@ -14,7 +14,10 @@ use tielpmet::template::Template;
 use toml::Table;
 use walkdir::WalkDir;
 
-use crate::{config::Config, nuke};
+use crate::{
+    manifest::{self, Manifest},
+    nuke,
+};
 
 /// The extension marking a file in the tree as a template.
 pub const TEMPLATE_FILE_EXTENSION: &str = "tielpmet";
@@ -116,7 +119,7 @@ fn deploy_template(
 pub fn tree(
     src_dir_path: &Path,
     dst_dir_path: &Path,
-    config: &Config,
+    manifest: &Manifest,
     local_variable_map: &mut HashMap<String, String>,
     verbose: bool,
 ) -> anyhow::Result<()> {
@@ -136,7 +139,7 @@ pub fn tree(
             fs::create_dir_all(dst_file_path)?;
         } else if file_type.is_file() {
             let document = if nuke::names_a_document(src_file_path) {
-                match nuke::target(&nuke::destination(relative_file_path), &config.targets)? {
+                match nuke::target(&nuke::destination(relative_file_path), &manifest.targets) {
                     Some(target) => Some(target),
                     None => continue,
                 }
@@ -160,9 +163,13 @@ pub fn tree(
 }
 
 /// Deploys the tracked tree over the home directory.
-pub fn deploy(base_dirs: &BaseDirs, config: &Config, verbose: bool) -> anyhow::Result<()> {
+pub fn deploy(base_dirs: &BaseDirs, verbose: bool) -> anyhow::Result<()> {
     let src_dir_path = &base_dirs.data_dir().join("dot/home/");
     let dst_dir_path = base_dirs.home_dir();
+
+    // Read here rather than at startup: `init` clones the tree that carries it,
+    // so before this point there may be no manifest to read.
+    let manifest = manifest::load(base_dirs)?;
 
     let local_variable_map_path = &base_dirs.config_dir().join("dot/local.toml");
 
@@ -179,7 +186,7 @@ pub fn deploy(base_dirs: &BaseDirs, config: &Config, verbose: bool) -> anyhow::R
     tree(
         src_dir_path,
         dst_dir_path,
-        config,
+        &manifest,
         &mut local_variable_map,
         verbose,
     )?;

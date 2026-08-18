@@ -3,7 +3,6 @@ use std::{
     ffi::OsStr,
     fs,
     path::{Path, PathBuf},
-    str::FromStr,
 };
 
 use anyhow::anyhow;
@@ -28,20 +27,16 @@ pub fn destination<P: AsRef<Path>>(path: P) -> PathBuf {
 /// `None` makes the document a module: something other documents import rather
 /// than something deployed. A name that says nothing is the host's to answer,
 /// and unlike `nuke render` there is nobody here to ask for a `--format`.
-pub fn target(
-    destination: &Path,
-    overrides: &HashMap<PathBuf, String>,
-) -> anyhow::Result<Option<Target>> {
-    if let Some(name) = overrides.get(destination) {
-        return Target::from_str(name)
-            .map(Some)
-            .map_err(|unknown| anyhow!("{}: {unknown}", destination.display()));
-    }
-
-    Ok(destination
-        .extension()
-        .and_then(OsStr::to_str)
-        .and_then(Target::from_extension))
+///
+/// A name no target answers to cannot arrive here: the manifest binds an atom
+/// to a `Target`, so it was refused when the manifest was read.
+pub fn target(destination: &Path, overrides: &HashMap<PathBuf, Target>) -> Option<Target> {
+    overrides.get(destination).copied().or_else(|| {
+        destination
+            .extension()
+            .and_then(OsStr::to_str)
+            .and_then(Target::from_extension)
+    })
 }
 
 /// Renders a Nuke document to a target's text, answering it beside the files it

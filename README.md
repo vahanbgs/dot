@@ -181,15 +181,26 @@ your home directory.
 ### Files Named Rather Than Extended
 
 `.gitconfig` and Ghostty's `config` carry no extension to read a format from, so name their target
-in `~/.config/dot/config.toml`, keyed by the deployed path relative to `$HOME`:
+in the **manifest**, `dot.nuke` at the root of the repository beside `home/`, keyed by the deployed
+path relative to `$HOME`:
 
-```toml
-[targets]
-".config/git/config" = "gitconfig"
-".config/ghostty/config" = "ghostty"
+```text
+# ~/.local/share/dot/dot.nuke
+{
+	targets = {
+		".config/git/config"     => Gitconfig
+		".config/ghostty/config" => Ghostty
+	}
+}
 ```
 
 This table is consulted before the extension, so it also overrides a name that would say otherwise.
+
+The manifest is itself a Nuke document, read through `bind::from_path`, so a target that does not
+exist is refused when `dot` loads it — naming the line that misspelled it — rather than surfacing
+later against whichever file wanted it. It lives beside `home/` rather than inside it, so it is
+versioned with the tree it describes and is never deployed. It is not `config.toml`: that file says
+how this machine behaves, and the manifest says what this tree contains.
 
 ### Templates or Documents
 
@@ -252,10 +263,6 @@ Create:
 
 ```toml
 auto_deploy = true
-
-[targets]
-".config/git/config" = "gitconfig"
-".config/ghostty/config" = "ghostty"
 ```
 
 When enabled, commands such as `edit` and `pull` automatically trigger deployment unless explicitly disabled with `--no-deploy`.
@@ -282,16 +289,20 @@ dot completions fish
 
 ## Configuration
 
-Global configuration file:
+Two files, with different scopes. How this machine behaves:
 
 ```text
 ~/.config/dot/config.toml
 ```
 
-Available options:
-
 ```toml
 auto_deploy = true
+```
+
+What the tracked tree contains, versioned with it — see **Files Named Rather Than Extended**:
+
+```text
+~/.local/share/dot/dot.nuke
 ```
 
 ## How It Works

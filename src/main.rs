@@ -4,7 +4,7 @@ use clap_complete::{self};
 use directories_next::BaseDirs;
 use dot::{
     cli::{Cli, Commands},
-    config::{self, Config},
+    config,
     deploy::{self, TEMPLATE_FILE_EXTENSION, create_parent_directory},
     nuke,
 };
@@ -60,7 +60,6 @@ fn commit(
 
 fn edit(
     base_dirs: &BaseDirs,
-    config: &Config,
     path: &Path,
     should_deploy: bool,
     verbose: bool,
@@ -81,7 +80,7 @@ fn edit(
     Editor::open(source_file_path)?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, config, verbose)?;
+        deploy::deploy(base_dirs, verbose)?;
     }
 
     Ok(())
@@ -89,7 +88,6 @@ fn edit(
 
 fn init(
     base_dirs: &BaseDirs,
-    config: &Config,
     repository: &GitUrl,
     should_deploy: bool,
     verbose: bool,
@@ -117,18 +115,13 @@ fn init(
         .status()?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, config, verbose)?;
+        deploy::deploy(base_dirs, verbose)?;
     }
 
     Ok(())
 }
 
-fn pull(
-    base_dirs: &BaseDirs,
-    config: &Config,
-    should_deploy: bool,
-    verbose: bool,
-) -> anyhow::Result<()> {
+fn pull(base_dirs: &BaseDirs, should_deploy: bool, verbose: bool) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
 
     Command::new("git")
@@ -138,7 +131,7 @@ fn pull(
         .status()?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, config, verbose)?;
+        deploy::deploy(base_dirs, verbose)?;
     }
 
     Ok(())
@@ -208,14 +201,13 @@ fn main() -> anyhow::Result<()> {
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
         }
-        Commands::Deploy => deploy::deploy(&base_dirs, &config, cli.verbose)?,
+        Commands::Deploy => deploy::deploy(&base_dirs, cli.verbose)?,
         Commands::Edit {
             path,
             deploy,
             no_deploy,
         } => edit(
             &base_dirs,
-            &config,
             &path,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
@@ -226,14 +218,12 @@ fn main() -> anyhow::Result<()> {
             no_deploy,
         } => init(
             &base_dirs,
-            &config,
             &repository,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,
         Commands::Pull { deploy, no_deploy } => pull(
             &base_dirs,
-            &config,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,

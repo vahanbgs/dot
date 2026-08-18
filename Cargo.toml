@@ -9,8 +9,8 @@ clap = { version = "4.5.53", features = ["derive"] }
 clap_complete = "4.5.65"
 directories-next = "2"
 git-url-parse = "0.6.0"
-nuke-eval = { version = "0.1.0", git = "https://github.com/vahanbgs/nuke.git", tag = "0.1.0" }
-nuke-transpile = { version = "0.1.0", git = "https://github.com/vahanbgs/nuke.git", tag = "0.1.0" }
+nuke-eval = { version = "0.2.0", git = "https://github.com/vahanbgs/nuke.git", tag = "0.2.0", features = ["serde"] }
+nuke-transpile = { version = "0.2.0", git = "https://github.com/vahanbgs/nuke.git", tag = "0.2.0", features = ["serde"] }
 opensesame = "0.1.1"
 serde = { version = "1.0.228", features = ["derive"] }
 tempfile = "3.24.0"

@@ -448,28 +448,31 @@ dependencies = [
 
 [[package]]
 name = "nuke-eval"
-version = "0.1.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+version = "0.2.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.2.0#e08cf74cffe4942f06933c7a60ca1384ef0bb254"
 dependencies = [
  "indexmap",
  "nuke-syntax",
+ "serde",
 ]
 
 [[package]]
 name = "nuke-syntax"
-version = "0.1.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+version = "0.2.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.2.0#e08cf74cffe4942f06933c7a60ca1384ef0bb254"
 dependencies = [
  "indexmap",
+ "serde",
 ]
 
 [[package]]
 name = "nuke-transpile"
-version = "0.1.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+version = "0.2.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.2.0#e08cf74cffe4942f06933c7a60ca1384ef0bb254"
 dependencies = [
  "nuke-syntax",
  "ryu",
+ "serde",
 ]
 
 [[package]]
