@@ -4,8 +4,9 @@ use clap_complete::{self};
 use directories_next::BaseDirs;
 use dot::{
     cli::{Cli, Commands},
-    config,
+    config::{self, Config},
     deploy::{self, TEMPLATE_FILE_EXTENSION, create_parent_directory},
+    nuke,
 };
 use git_url_parse::GitUrl;
 use opensesame::Editor;
@@ -59,6 +60,7 @@ fn commit(
 
 fn edit(
     base_dirs: &BaseDirs,
+    config: &Config,
     path: &Path,
     should_deploy: bool,
     verbose: bool,
@@ -70,16 +72,16 @@ fn edit(
 
     let file_path = base_dirs.data_dir().join("dot/home").join(relative_path);
 
-    let template_file_path = file_path.with_added_extension(TEMPLATE_FILE_EXTENSION);
+    let source_file_path = [nuke::FILE_EXTENSION, TEMPLATE_FILE_EXTENSION]
+        .into_iter()
+        .map(|extension| file_path.with_added_extension(extension))
+        .find(|candidate| candidate.exists())
+        .unwrap_or(file_path);
 
-    Editor::open(if template_file_path.exists() {
-        template_file_path
-    } else {
-        file_path
-    })?;
+    Editor::open(source_file_path)?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, verbose)?;
+        deploy::deploy(base_dirs, config, verbose)?;
     }
 
     Ok(())
@@ -87,6 +89,7 @@ fn edit(
 
 fn init(
     base_dirs: &BaseDirs,
+    config: &Config,
     repository: &GitUrl,
     should_deploy: bool,
     verbose: bool,
@@ -114,13 +117,18 @@ fn init(
         .status()?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, verbose)?;
+        deploy::deploy(base_dirs, config, verbose)?;
     }
 
     Ok(())
 }
 
-fn pull(base_dirs: &BaseDirs, should_deploy: bool, verbose: bool) -> anyhow::Result<()> {
+fn pull(
+    base_dirs: &BaseDirs,
+    config: &Config,
+    should_deploy: bool,
+    verbose: bool,
+) -> anyhow::Result<()> {
     let repository_path = base_dirs.data_dir().join("dot");
 
     Command::new("git")
@@ -130,7 +138,7 @@ fn pull(base_dirs: &BaseDirs, should_deploy: bool, verbose: bool) -> anyhow::Res
         .status()?;
 
     if should_deploy {
-        deploy::deploy(base_dirs, verbose)?;
+        deploy::deploy(base_dirs, config, verbose)?;
     }
 
     Ok(())
@@ -200,13 +208,14 @@ fn main() -> anyhow::Result<()> {
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "dot", &mut io::stdout())
         }
-        Commands::Deploy => deploy::deploy(&base_dirs, cli.verbose)?,
+        Commands::Deploy => deploy::deploy(&base_dirs, &config, cli.verbose)?,
         Commands::Edit {
             path,
             deploy,
             no_deploy,
         } => edit(
             &base_dirs,
+            &config,
             &path,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
@@ -217,12 +226,14 @@ fn main() -> anyhow::Result<()> {
             no_deploy,
         } => init(
             &base_dirs,
+            &config,
             &repository,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,
         Commands::Pull { deploy, no_deploy } => pull(
             &base_dirs,
+            &config,
             !no_deploy && (deploy || config.auto_deploy),
             cli.verbose,
         )?,

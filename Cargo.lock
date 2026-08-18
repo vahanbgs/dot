@@ -186,6 +186,8 @@ dependencies = [
  "clap_complete_nushell",
  "directories-next",
  "git-url-parse",
+ "nuke-eval",
+ "nuke-transpile",
  "opensesame",
  "serde",
  "tempfile",
@@ -445,6 +447,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "nuke-eval"
+version = "0.1.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+dependencies = [
+ "indexmap",
+ "nuke-syntax",
+]
+
+[[package]]
+name = "nuke-syntax"
+version = "0.1.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+dependencies = [
+ "indexmap",
+]
+
+[[package]]
+name = "nuke-transpile"
+version = "0.1.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.1.0#cfd08a1a8bb1fe06cdf72ff7bced5dc5afecc82d"
+dependencies = [
+ "nuke-syntax",
+ "ryu",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,6 +607,12 @@ dependencies = [
  "linux-raw-sys",
  "windows-sys",
 ]
+
+[[package]]
+name = "ryu"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "same-file"
