@@ -2,7 +2,8 @@
 A simple dotfile manager written in Rust
 
 `dot` helps you keep your configuration files under version control, synchronize them across machines, and deploy them into your home directory.
-It also supports template files with machine-specific variables.
+It also supports template files with machine-specific variables, and Nuke documents, which let one
+value be written once and rendered into every format that needs it.
 
 ## Features
 
@@ -11,6 +12,7 @@ It also supports template files with machine-specific variables.
 * Deploy tracked files back into `$HOME`
 * No symlinks, no unintended modifications to your dot files
 * Template support for machine-specific configuration
+* Nuke documents rendered to JSON, YAML, TOML, XML, KDL, Lua, INI, gitconfig, Nix, Ghostty and plist
 * Git workflow shortcuts (`add`, `commit`, `push`, `pull`, `status`)
 * Open tracked files in your preferred editor
 * Optional automatic deployment after edits and pulls
@@ -79,8 +81,11 @@ home/
 ├── .bashrc
 ├── .gitconfig
 └── .config/
-    └── nvim/
-        └── init.lua
+    ├── palette.nuke
+    ├── nvim/
+    │   └── init.lua
+    └── alacritty/
+        └── alacritty.toml.nuke
 ```
 
 When deployed, these files are copied into the corresponding locations under your home directory.
@@ -132,6 +137,64 @@ dot cd
 ```
 
 Launches a subshell in the directory of your repository.
+
+## Nuke Documents
+
+A file ending in `.nuke` is a [Nuke](https://github.com/vahanbgs/nuke) document. It is evaluated and
+rendered to its target's format on deployment, and the `.nuke` is dropped from the name:
+
+```text
+home/.config/alacritty/alacritty.toml.nuke   ->  ~/.config/alacritty/alacritty.toml
+```
+
+The extension underneath the `.nuke` names the format, so `alacritty.toml.nuke` is TOML. Eleven are
+available: `json`, `yaml`, `toml`, `xml`, `kdl`, `lua`, `ini`, `gitconfig`, `nix`, `ghostty` and
+`plist`.
+
+The point is that documents can import each other, so a value is written once:
+
+```text
+# home/.config/palette.nuke
+{
+	accent = "#FE8019"
+	background = "#282828"
+}
+```
+
+```text
+# home/.config/alacritty/alacritty.toml.nuke
+palette := @import "../palette.nuke"
+
+{
+	colors = {primary = {background = palette.background cursor = palette.accent}}
+}
+```
+
+Editing `palette.nuke` and running `dot deploy` changes every file that reads it.
+
+### Modules
+
+A `.nuke` file whose name does not give a format is a **module**: something other documents import,
+never something deployed. `palette.nuke` above is one, so it feeds the tree without appearing in
+your home directory.
+
+### Files Named Rather Than Extended
+
+`.gitconfig` and Ghostty's `config` carry no extension to read a format from, so name their target
+in `~/.config/dot/config.toml`, keyed by the deployed path relative to `$HOME`:
+
+```toml
+[targets]
+".config/git/config" = "gitconfig"
+".config/ghostty/config" = "ghostty"
+```
+
+This table is consulted before the extension, so it also overrides a name that would say otherwise.
+
+### Templates or Documents
+
+The two live side by side and do different jobs. Nuke writes what has a grammar; templates write
+what does not — a `config.fish`, a `flake.nix`, a shell profile. Neither replaces the other.
 
 ## Templates
 
@@ -189,6 +252,10 @@ Create:
 
 ```toml
 auto_deploy = true
+
+[targets]
+".config/git/config" = "gitconfig"
+".config/ghostty/config" = "ghostty"
 ```
 
 When enabled, commands such as `edit` and `pull` automatically trigger deployment unless explicitly disabled with `--no-deploy`.
@@ -235,3 +302,4 @@ auto_deploy = true
 4. Pull the repository on another machine.
 5. Deploy files into the local home directory.
 6. Fill in machine-specific values using templates.
+7. Share values across formats using Nuke documents.
