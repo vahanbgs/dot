@@ -1,12 +1,14 @@
 use std::{
     collections::HashMap,
     ffi::OsStr,
-    fs::{self, File},
+    fs,
     io::{self, Write},
     path::Path,
 };
 
+use anyhow::anyhow;
 use directories_next::BaseDirs;
+use tempfile::NamedTempFile;
 use tielpmet::template::Template;
 use toml::Table;
 use walkdir::WalkDir;
@@ -19,6 +21,22 @@ pub fn create_parent_directory<P: AsRef<Path>>(path: P) -> io::Result<()> {
     if let Some(parent) = path.as_ref().parent() {
         fs::create_dir_all(parent)?;
     }
+
+    Ok(())
+}
+
+/// Writes a file in one step, through a temporary file in the same directory,
+/// so a rendering that fails part way through leaves the previous file
+/// standing rather than a truncated one.
+pub fn write_atomically(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
+    let directory = path
+        .parent()
+        .ok_or_else(|| anyhow!("{} has no parent directory", path.display()))?;
+
+    let mut file = NamedTempFile::new_in(directory)?;
+
+    file.write_all(contents)?;
+    file.persist(path)?;
 
     Ok(())
 }
@@ -54,11 +72,11 @@ fn deploy_template(
         }
     }
 
-    let mut output_file = File::create(&dst_file_path)?;
+    let mut rendered = Vec::new();
 
-    template.render(&mut output_file, local_variable_map)?;
+    template.render(&mut rendered, local_variable_map)?;
 
-    Ok(())
+    write_atomically(&dst_file_path, &rendered)
 }
 
 /// Deploys one tree over another, rendering what is a template and copying
