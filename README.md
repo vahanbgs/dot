@@ -186,11 +186,9 @@ path relative to `$HOME`:
 
 ```text
 # ~/.local/share/dot/dot.nuke
-{
-	targets = {
-		".config/git/config"     => Gitconfig
-		".config/ghostty/config" => Ghostty
-	}
+targets = {
+	".config/git/config"     => Gitconfig
+	".config/ghostty/config" => Ghostty
 }
 ```
 

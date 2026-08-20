@@ -63,6 +63,18 @@ fn a_table_names_the_target_of_a_file_that_is_named_rather_than_extended() {
 }
 
 #[test]
+fn a_manifest_needs_no_braces_because_the_file_is_the_table() {
+    let braced =
+        Tree::holding("{\n\ttargets = {\n\t\t\".config/git/config\" => Gitconfig\n\t}\n}\n");
+    let braceless = Tree::holding("targets = {\n\t\".config/git/config\" => Gitconfig\n}\n");
+
+    assert_eq!(
+        braceless.read().expect("a braceless manifest"),
+        braced.read().expect("a braced manifest")
+    );
+}
+
+#[test]
 fn a_manifest_reads_the_module_it_imports() {
     let tree = Tree::holding("named := @import \"./named.nuke\"\n{targets = named}\n");
 
