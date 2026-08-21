@@ -178,7 +178,7 @@ dependencies = [
 
 [[package]]
 name = "dot"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -448,8 +448,8 @@ dependencies = [
 
 [[package]]
 name = "nuke-eval"
-version = "0.4.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.4.0#cca3e5a16dede0e5d9d81518ddd55bdb0ec587fd"
+version = "0.5.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.5.0#7e089eb7003428df7a935cf2b77d6bd2db29fced"
 dependencies = [
  "indexmap",
  "nuke-syntax",
@@ -458,8 +458,8 @@ dependencies = [
 
 [[package]]
 name = "nuke-syntax"
-version = "0.4.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.4.0#cca3e5a16dede0e5d9d81518ddd55bdb0ec587fd"
+version = "0.5.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.5.0#7e089eb7003428df7a935cf2b77d6bd2db29fced"
 dependencies = [
  "indexmap",
  "serde",
@@ -467,9 +467,10 @@ dependencies = [
 
 [[package]]
 name = "nuke-transpile"
-version = "0.4.0"
-source = "git+https://github.com/vahanbgs/nuke.git?tag=0.4.0#cca3e5a16dede0e5d9d81518ddd55bdb0ec587fd"
+version = "0.5.0"
+source = "git+https://github.com/vahanbgs/nuke.git?tag=0.5.0#7e089eb7003428df7a935cf2b77d6bd2db29fced"
 dependencies = [
+ "heck",
  "nuke-syntax",
  "ryu",
  "serde",
